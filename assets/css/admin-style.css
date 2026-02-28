@@ -1,0 +1,129 @@
+/**
+ * WP Media Export — Admin Styles
+ */
+
+/* ── Progress bar ───────────────────────────────── */
+.wpme-progress-wrap {
+    display: none;
+    margin: 20px 0;
+    max-width: 600px;
+}
+
+.wpme-progress-wrap.active {
+    display: block;
+}
+
+.wpme-progress-bar-outer {
+    width: 100%;
+    height: 28px;
+    background: #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.wpme-progress-bar-inner {
+    width: 0;
+    height: 100%;
+    background: #0073aa;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.wpme-progress-text {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 28px;
+    line-height: 28px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.wpme-progress-status {
+    margin-top: 8px;
+    font-size: 13px;
+    color: #50575e;
+}
+
+/* ── Download actions ───────────────────────────── */
+.wpme-actions {
+    margin: 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* ── List Table tweaks ──────────────────────────── */
+.wpme-wrap .wp-list-table .column-cb {
+    width: 2.2em;
+}
+
+.wpme-wrap .wp-list-table .column-thumbnail {
+    width: 60px;
+}
+
+.wpme-wrap .wp-list-table .column-thumbnail img {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 3px;
+}
+
+.wpme-wrap .wp-list-table .column-file_size {
+    width: 100px;
+}
+
+.wpme-wrap .wp-list-table .column-mime_type {
+    width: 140px;
+}
+
+.wpme-wrap .wp-list-table .column-date {
+    width: 140px;
+}
+
+/* ── Select-all banner ──────────────────────────── */
+.wpme-select-all-banner {
+    display: none;
+    background: #f0f6fc;
+    border: 1px solid #c3c4c7;
+    padding: 8px 16px;
+    margin: 0 0 4px;
+    text-align: center;
+    font-size: 13px;
+}
+
+.wpme-select-all-banner.active {
+    display: block;
+}
+
+.wpme-select-all-banner a {
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+/* ── Error list ─────────────────────────────────── */
+.wpme-errors {
+    margin: 12px 0;
+    padding: 10px 16px;
+    background: #fcf0f1;
+    border-left: 4px solid #d63638;
+    display: none;
+}
+
+.wpme-errors.active {
+    display: block;
+}
+
+.wpme-errors ul {
+    margin: 4px 0 0 16px;
+    list-style: disc;
+}
+
+/* ── Hidden download iframe ─────────────────────── */
+.wpme-download-frame {
+    display: none;
+}
