@@ -14,6 +14,7 @@
     /* ── DOM references ───────────────────────────── */
     var $form           = $('#wpme-media-form');
     var $downloadBtn    = $('#wpme-download-btn');
+    var $downloadAllBtn = $('#wpme-download-all-btn');
     var $selectedCount  = $('#wpme-selected-count');
     var $progressWrap   = $('#wpme-progress-wrap');
     var $progressBar    = $('#wpme-progress-bar');
@@ -127,6 +128,7 @@
 
     /* ── Export workflow ───────────────────────────── */
 
+    // Download selected items.
     $downloadBtn.on('click', function () {
         if (state.exporting) {
             return;
@@ -142,9 +144,57 @@
         startExport(ids);
     });
 
+    // Download ALL items matching current filters.
+    $downloadAllBtn.on('click', function () {
+        if (state.exporting) {
+            return;
+        }
+
+        state.exporting = true;
+        $downloadAllBtn.prop('disabled', true);
+        $downloadBtn.prop('disabled', true);
+        $progressWrap.addClass('active');
+        $progressBar.css('width', '0%');
+        $progressText.text('');
+        $progressStatus.text(wpme.i18n.fetching_all);
+        $errors.removeClass('active');
+        $errorList.empty();
+
+        $.post(wpme.ajax_url, {
+            action:      'wpme_get_filtered_ids',
+            nonce:       wpme.nonce,
+            mime_filter:  $('#wpme-mime-filter').val() || '',
+            m:            $('#wpme-date-filter').val() || 0,
+            s:            $form.find('input[name="s"]').val() || ''
+        }).done(function (res) {
+            if (!res.success || !res.data.ids || res.data.ids.length === 0) {
+                showError(wpme.i18n.no_selection);
+                resetExport();
+                return;
+            }
+
+            var ids = res.data.ids;
+            var msg = wpme.i18n.confirm_all.replace('%d', ids.length);
+
+            if (!confirm(msg)) {
+                resetExport();
+                return;
+            }
+
+            // Reset exporting flag so startExport can set it.
+            state.exporting = false;
+            startExport(ids);
+
+        }).fail(function (xhr) {
+            showError(wpme.i18n.error + ' (HTTP ' + xhr.status + ')');
+            resetExport();
+        });
+    });
+
     function startExport(ids) {
         state.exporting = true;
         $downloadBtn.prop('disabled', true);
+        $downloadAllBtn.prop('disabled', true);
 
         // Reset UI.
         $progressWrap.addClass('active');
@@ -173,8 +223,8 @@
 
             processBatch(batches, 0, token, processed, ids.length, allErrors);
 
-        }).fail(function () {
-            showError(wpme.i18n.error);
+        }).fail(function (xhr) {
+            showError(wpme.i18n.error + ' (HTTP ' + xhr.status + ')');
             resetExport();
         });
     }
@@ -200,7 +250,7 @@
             action: 'wpme_add_batch',
             nonce:  wpme.nonce,
             token:  token,
-            ids:    batch
+            ids:    JSON.stringify(batch)
         }).done(function (res) {
             if (!res.success) {
                 showError(res.data && res.data.message ? res.data.message : wpme.i18n.error);
@@ -222,8 +272,8 @@
 
             processBatch(batches, index + 1, token, processed, total, allErrors);
 
-        }).fail(function () {
-            showError(wpme.i18n.error);
+        }).fail(function (xhr) {
+            showError(wpme.i18n.error + ' (HTTP ' + xhr.status + ')');
             resetExport();
         });
     }
@@ -246,6 +296,7 @@
     function resetExport() {
         state.exporting = false;
         $downloadBtn.prop('disabled', false);
+        $downloadAllBtn.prop('disabled', false);
     }
 
     function showError(message) {

@@ -51,11 +51,10 @@ class WPME_Ajax_Handler {
      * @return string
      */
     private function generate_token() {
-        $bytes = random_bytes( 16 );
-        // Set version (4) and variant bits.
-        $bytes[6] = chr( ( ord( $bytes[6] ) & 0x0f ) | 0x40 );
-        $bytes[8] = chr( ( ord( $bytes[8] ) & 0x3f ) | 0x80 );
-        return vsprintf( '%s%s-%s-%s-%s-%s%s%s', str_split( bin2hex( $bytes ), 4 ) );
+        if ( function_exists( 'wp_generate_uuid4' ) ) {
+            return wp_generate_uuid4();
+        }
+        return md5( uniqid( wp_rand(), true ) );
     }
 
     /**
@@ -65,7 +64,37 @@ class WPME_Ajax_Handler {
      * @return string
      */
     private function transient_key( $token ) {
-        return 'wpme_export_' . $token;
+        return 'wpme_export_' . substr( preg_replace( '/[^a-f0-9\-]/', '', $token ), 0, 36 );
+    }
+
+    /**
+     * Create a temp file path in the uploads directory.
+     *
+     * Uses the uploads dir (always writable) instead of system temp
+     * to avoid cross-device rename issues and permission problems.
+     *
+     * @return string|false
+     */
+    private function create_temp_path() {
+        $upload_dir = wp_upload_dir();
+        $tmp_dir    = $upload_dir['basedir'] . '/wpme-tmp';
+
+        if ( ! file_exists( $tmp_dir ) ) {
+            wp_mkdir_p( $tmp_dir );
+            // Prevent directory listing.
+            @file_put_contents( $tmp_dir . '/index.php', '<?php // Silence.' );
+        }
+
+        $filename = 'wpme_' . wp_generate_password( 12, false ) . '.zip';
+        $filepath = $tmp_dir . '/' . $filename;
+
+        // Create the empty file.
+        $result = @file_put_contents( $filepath, '' );
+        if ( false === $result ) {
+            return false;
+        }
+
+        return $filepath;
     }
 
     /* ──────────────────────────────────────────────
@@ -84,13 +113,13 @@ class WPME_Ajax_Handler {
         }
 
         $token    = $this->generate_token();
-        $zip_path = wp_tempnam( 'wpme_' );
+        $zip_path = $this->create_temp_path();
 
-        // Rename to .zip extension for clarity.
-        $zip_path_ext = $zip_path . '.zip';
-        // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
-        @rename( $zip_path, $zip_path_ext );
-        $zip_path = $zip_path_ext;
+        if ( ! $zip_path ) {
+            wp_send_json_error( array(
+                'message' => __( '一時ファイルを作成できませんでした。アップロードディレクトリの書き込み権限を確認してください。', 'wp-media-export' ),
+            ) );
+        }
 
         set_transient( $this->transient_key( $token ), array(
             'zip_path' => $zip_path,
@@ -112,7 +141,15 @@ class WPME_Ajax_Handler {
         $this->verify_request();
 
         $token = isset( $_POST['token'] ) ? sanitize_text_field( wp_unslash( $_POST['token'] ) ) : '';
-        $ids   = isset( $_POST['ids'] ) ? array_map( 'absint', (array) $_POST['ids'] ) : array();
+
+        // IDs may arrive as a JSON string or array.
+        $ids_raw = isset( $_POST['ids'] ) ? wp_unslash( $_POST['ids'] ) : '[]';
+        if ( is_array( $ids_raw ) ) {
+            $ids = array_map( 'absint', $ids_raw );
+        } else {
+            $decoded = json_decode( sanitize_text_field( $ids_raw ), true );
+            $ids     = is_array( $decoded ) ? array_map( 'absint', $decoded ) : array();
+        }
 
         if ( ! $token || empty( $ids ) ) {
             wp_send_json_error( array(
@@ -229,34 +266,31 @@ class WPME_Ajax_Handler {
     public function get_filtered_ids() {
         $this->verify_request();
 
-        $args = WPME_Media_List_Table::build_query_args();
-        $args['posts_per_page'] = -1;
-        $args['fields']         = 'ids';
-        $args['no_found_rows']  = true;
+        $args = array(
+            'post_type'      => 'attachment',
+            'post_status'    => 'inherit',
+            'posts_per_page' => -1,
+            'fields'         => 'ids',
+            'no_found_rows'  => true,
+        );
 
         // Sanitize filter params from POST.
         if ( isset( $_POST['mime_filter'] ) ) {
             $mime = sanitize_text_field( wp_unslash( $_POST['mime_filter'] ) );
             if ( $mime ) {
                 $args['post_mime_type'] = $mime;
-            } else {
-                unset( $args['post_mime_type'] );
             }
         }
         if ( isset( $_POST['m'] ) ) {
             $m = absint( $_POST['m'] );
             if ( $m ) {
                 $args['m'] = $m;
-            } else {
-                unset( $args['m'] );
             }
         }
         if ( isset( $_POST['s'] ) ) {
             $s = sanitize_text_field( wp_unslash( $_POST['s'] ) );
             if ( $s ) {
                 $args['s'] = $s;
-            } else {
-                unset( $args['s'] );
             }
         }
 

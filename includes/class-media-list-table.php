@@ -73,12 +73,6 @@ class WPME_Media_List_Table extends WP_List_Table {
      * @return string
      */
     public function column_thumbnail( $item ) {
-        if ( wp_attachment_is_image( $item->ID ) ) {
-            $thumb = wp_get_attachment_image_src( $item->ID, 'thumbnail' );
-            if ( $thumb ) {
-                return sprintf( '<img src="%s" alt="" />', esc_url( $thumb[0] ) );
-            }
-        }
         return wp_get_attachment_image( $item->ID, array( 40, 40 ), true );
     }
 
@@ -171,7 +165,7 @@ class WPME_Media_List_Table extends WP_List_Table {
      *
      * @param string $post_type
      */
-    private function months_dropdown( $post_type ) {
+    protected function months_dropdown( $post_type ) {
         global $wpdb;
 
         $months = $wpdb->get_results(

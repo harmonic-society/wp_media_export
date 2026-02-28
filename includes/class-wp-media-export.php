@@ -83,6 +83,8 @@ class WP_Media_Export {
                 'select_all_match' => __( 'フィルタに一致する全 %d 件を選択', 'wp-media-export' ),
                 'all_selected'     => __( 'フィルタに一致する全 %d 件が選択されています。', 'wp-media-export' ),
                 'clear_selection'  => __( '選択を解除', 'wp-media-export' ),
+                'fetching_all'     => __( '全件のIDを取得中…', 'wp-media-export' ),
+                'confirm_all'      => __( '全 %d 件のメディアをダウンロードします。よろしいですか？', 'wp-media-export' ),
             ),
         ) );
     }
@@ -111,7 +113,10 @@ class WP_Media_Export {
 
             <div class="wpme-actions">
                 <button type="button" id="wpme-download-btn" class="button button-primary">
-                    <?php esc_html_e( 'ダウンロード', 'wp-media-export' ); ?>
+                    <?php esc_html_e( '選択をダウンロード', 'wp-media-export' ); ?>
+                </button>
+                <button type="button" id="wpme-download-all-btn" class="button button-secondary">
+                    <?php esc_html_e( '全件ダウンロード', 'wp-media-export' ); ?>
                 </button>
                 <span id="wpme-selected-count"></span>
             </div>
